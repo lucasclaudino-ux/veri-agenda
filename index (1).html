@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VERI Agenda</title>
+<link href="https://fonts.googleapis.com/css2?family=Raleway:wght@300;400;600;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+:root{--navy:#0a2a6b;--blue:#1e63e9;--cyan:#1fd3e6;--bg:#f2f6ff;--card:#fff;--ink:#0f1b3d;--mut:#5d6b8f;--line:#d9e3f7;--ok:#17a566;--warn:#e8a008;--bad:#e5484d;--land:#e4edff}
+@media(prefers-color-scheme:dark){:root{--bg:#0b1530;--card:#13224a;--ink:#e8eefc;--mut:#9fb0d8;--line:#25376b;--land:#1a2d5e}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Raleway,system-ui,sans-serif;font-size:15px;line-height:1.45;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+header{background:linear-gradient(120deg,var(--navy),#1550c4);color:#fff;display:flex;flex-wrap:wrap;align-items:center;gap:10px 22px;padding:12px 24px}
+.logo{display:flex;align-items:center;gap:10px;font-weight:800;font-size:24px;letter-spacing:.04em}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav button,.out{font:inherit;font-weight:600;font-size:13px;color:#cfe0ff;background:transparent;border:1px solid #ffffff33;border-radius:999px;padding:8px 14px;cursor:pointer;min-height:38px}
+nav button.on{background:#fff;color:var(--navy);border-color:#fff}
+.who{margin-left:auto;display:flex;gap:10px;align-items:center;font-size:13px;color:#cfe0ff}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.ag:focus-visible,.c5:focus-visible,a:focus-visible{outline:3px solid var(--cyan);outline-offset:2px}
+main{max-width:1240px;margin:0 auto;padding:20px 24px 48px}
+.v{display:none}.v.on{display:block}
+h1{font-size:28px;font-weight:800;margin:0 0 4px}h2{font-size:18px;margin:0 0 10px}
+.sub{color:var(--mut);margin:0 0 16px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px}
+label{display:block;font-weight:600;font-size:13px;margin:0 0 4px}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:9px;padding:10px 11px}
+textarea{resize:vertical;min-height:70px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.full{grid-column:1/-1}
+.btn{font:inherit;font-weight:800;background:var(--blue);color:#fff;border:0;border-radius:10px;padding:11px 20px;cursor:pointer;text-decoration:none;display:inline-block;text-align:center;min-height:44px}
+.btn.alt{background:transparent;color:var(--blue);border:2px solid var(--blue)}.btn[disabled]{opacity:.6;cursor:wait}
+.login{max-width:420px;margin:40px auto;display:grid;gap:14px}
+.two{display:grid;grid-template-columns:1.25fr 1fr;gap:20px;align-items:start}
+.alert{border-radius:12px;padding:14px 16px;border-left:6px solid var(--ok);background:#17a56618}
+.alert.l1{border-color:var(--warn);background:#e8a00818}.alert.l2{border-color:var(--bad);background:#e5484d18}
+.alert h3{margin:0 0 6px;font-size:16px}.alert ul{margin:6px 0 0;padding-left:18px;color:var(--mut);font-size:13.5px}.alert p{margin:8px 0 0;font-size:13.5px}
+.tools{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.tools select{width:auto}
+.board{display:grid;grid-template-columns:repeat(6,minmax(230px,1fr));gap:12px;overflow-x:auto;align-items:start;padding-bottom:10px}
+.col{background:#1e63e910;border:1px dashed var(--line);border-radius:12px;padding:8px;min-height:240px}
+.col h3{font-size:14px;margin:2px 4px 8px;display:flex;align-items:center;gap:7px}
+.col h3 i{width:10px;height:10px;border-radius:50%}.col h3 b{margin-left:auto;color:var(--mut);font-weight:600}
+.ag{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--blue);border-radius:10px;padding:10px 12px;margin-bottom:8px;cursor:pointer;display:grid;gap:1px}
+.ag.on{border-color:var(--cyan);box-shadow:0 0 0 2px var(--cyan)}
+.ag .hr{font-weight:800;color:var(--blue);font-size:13px}.ag span{color:var(--mut);font-size:12.5px}
+.ag p.rs{margin:6px 0 2px;font-size:13px;color:var(--ink)}.ag select{font-size:13px;padding:6px 8px;margin-top:6px}
+.ac{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}.ac .btn{font-size:13px;padding:8px 12px}
+.vz{color:var(--mut);font-size:13px;margin:6px}
+.mapbox{height:100%;min-height:0;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:var(--card)}
+.mapbox>div{height:100%;width:100%;min-height:300px;background:var(--land)}
+.leaflet-container{font-family:inherit}
+.nm{width:100%;height:100%;border-radius:50%;background:var(--c);border:3px solid #fff;box-shadow:0 1px 6px #0006;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px}
+.nm.on{box-shadow:0 0 0 5px #1fd3e699,0 2px 10px #000a}.nm.dn{opacity:.6}
+.top5{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px;margin-bottom:12px}
+#hoje{text-transform:capitalize;font-size:26px;font-weight:800;margin:0}
+.prog{min-width:220px}.prog b{font-size:14px}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;background:var(--ok);transition:width .4s}
+.split5{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:16px;height:calc(100vh - 230px);min-height:560px}
+#list5{overflow-y:auto;padding-right:4px}
+.c5{background:var(--card);border:1px solid var(--line);border-left:6px solid var(--blue);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer}
+.c5.on{border-color:var(--cyan);box-shadow:0 0 0 2px var(--cyan)}.c5.dn{opacity:.75}
+.c5 .row{display:flex;gap:12px;align-items:center}
+.c5 .tm{font-size:22px;font-weight:800;color:var(--blue);min-width:64px}
+.c5 .nx{display:inline-block;background:var(--blue);color:#fff;border-radius:99px;font-size:12px;font-weight:800;padding:2px 10px;margin-left:6px}
+.c5 .tg{margin-left:auto;font-size:12px;font-weight:600;border-radius:99px;padding:3px 10px;background:var(--bg);border:1px solid var(--line);white-space:nowrap}
+.c5 strong{display:block;font-size:16px}.c5 .ad{color:var(--mut);font-size:14px}
+.c5 .more{margin-top:12px;border-top:1px solid var(--line);padding-top:12px;display:grid;gap:10px}
+.c5 .info{font-size:14px}.c5 .info a{color:var(--blue);font-weight:600}
+.big{display:grid;grid-template-columns:2fr 1fr;gap:8px}.big .btn{font-size:16px;padding:14px}
+.res{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.res button{font:inherit;font-weight:600;font-size:14px;border-radius:10px;border:2px solid var(--line);background:var(--bg);color:var(--ink);padding:12px 6px;cursor:pointer;min-height:48px}
+.res button[data-res=realizada]{border-color:var(--ok);color:var(--ok)}.res button[data-res=no_show]{border-color:var(--bad);color:var(--bad)}.res button[data-res=reagendar]{border-color:var(--warn);color:#a87100}
+.hd{font-size:13px;font-weight:800;color:var(--mut);margin:14px 4px 8px}
+.lk{background:none;border:0;color:var(--blue);font:inherit;font-weight:600;cursor:pointer;padding:6px 0;text-align:left}
+.empty{text-align:center;padding:36px 16px;color:var(--mut)}
+#toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(30px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:.3s;z-index:9999;max-width:90vw}
+#toast.on{opacity:1;transform:translateX(-50%)}
+@media(max-width:900px){.two,.grid{grid-template-columns:1fr}header{padding:10px 14px}main{padding:14px}.who{margin-left:0}
+ .split5{grid-template-columns:1fr;height:auto;min-height:0}.split5 .mapbox{height:260px}#list5{overflow:visible}#hoje{font-size:22px}}
+@media(prefers-reduced-motion:reduce){.bar i,#toast{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo"><svg width="36" height="36" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="23" fill="#fff"/><path d="M12 14l12 23 12-23" fill="none" stroke="#1e63e9" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 22l5 8 10-17" fill="none" stroke="#1fd3e6" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>VERI</div>
+  <nav id="nav" aria-label="Áreas do sistema"></nav>
+  <div class="who" id="who"></div>
+</header>
+<main>
+
+<section class="v on" id="v-login">
+  <form class="login panel" id="lf">
+    <h2>Entrar na agenda</h2>
+    <div><label for="em">E-mail</label><input id="em" type="email" autocomplete="username" required></div>
+    <div><label for="pw">Senha</label><input id="pw" type="password" autocomplete="current-password" required></div>
+    <button class="btn" id="lb">Entrar</button>
+    <p class="sub" id="lm" style="margin:0"></p>
+  </form>
+</section>
+
+<section class="v" id="v-novo">
+  <h1>CRM · Nova agenda</h1>
+  <p class="sub">Cadastre uma vez. A agenda aparece sozinha no Kanban e na Agenda do consultor responsável.</p>
+  <div class="two">
+    <form class="panel grid" id="form" autocomplete="off">
+      <div><label for="fo">Nome do dono</label><input id="fo" required></div>
+      <div><label for="fn">Contabilidade</label><input id="fn" required></div>
+      <div><label for="fc">Cidade</label><input id="fc" list="cidades" required></div>
+      <div><label for="fe">Endereço</label><input id="fe" placeholder="Rua, número, bairro" required></div>
+      <div><label for="fd">Data</label><input id="fd" type="date" required></div>
+      <div><label for="fh">Horário</label><input id="fh" type="time" required></div>
+      <div><label for="fq">CNPJs que atende hoje</label><input id="fq" type="number" min="0"></div>
+      <div><label for="fcs">Consultor</label><select id="fcs" required></select></div>
+      <div><label for="ft">Telefone do contato</label><input id="ft" type="tel"></div>
+      <div><label for="fm">E-mail do cliente</label><input id="fm" type="email"></div>
+      <div class="full"><label for="fr">O que foi falado na ligação</label><textarea id="fr"></textarea></div>
+      <div class="full"><button class="btn" id="go">Verificar e agendar</button></div>
+    </form>
+    <div id="chk"></div>
+  </div>
+  <datalist id="cidades"></datalist>
+</section>
+
+<section class="v" id="v-kan">
+  <h1>Kanban de agendas</h1>
+  <p class="sub">Todas as agendas por status. Clique em um cartão para ver os detalhes e arraste para mudar o status.</p>
+  <div class="tools"><label for="fdia" style="margin:0">Dia</label><select id="fdia"></select></div>
+  <div id="side" class="board" aria-label="Agendas"></div>
+</section>
+
+<section class="v" id="v-dia">
+  <div class="top5">
+    <div><div style="color:var(--mut);font-size:13px;font-weight:600" id="quem5"></div><h1 id="hoje"></h1></div>
+    <div class="prog" id="prog"></div>
+  </div>
+  <div class="split5">
+    <div class="mapbox"><div id="map5"></div></div>
+    <div id="list5" aria-label="Agendas de hoje"></div>
+  </div>
+</section>
+
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+<script type="module">
+import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getFirestore,collection,doc,getDoc,setDoc,addDoc,updateDoc,onSnapshot,query,where,orderBy,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+/* ============ CONFIGURAÇÃO: cole aqui o firebaseConfig do seu projeto Firebase ============ */
+const CFG={apiKey:'AIzaSyAxj3XjbJvamFv4k1ydsd64hxlogcw3g9Y',authDomain:'veri-agenda.firebaseapp.com',projectId:'veri-agenda',storageBucket:'veri-agenda.firebasestorage.app',messagingSenderId:'543731109949',appId:'1:543731109949:web:e863d5151c761382b19a54'};
+/* ============================================================================================ */
+
+const $=i=>document.getElementById(i),pad=n=>String(n).padStart(2,'0');
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const tod=()=>{const d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
+const fd=d=>d.slice(8,10)+'/'+d.slice(5,7);
+const wd=(d,o)=>new Date(d+'T12:00:00').toLocaleDateString('pt-BR',o);
+const mn=h=>+h.slice(0,2)*60+ +h.slice(3,5);
+const ST=[['agendada','Agendada','#1e63e9'],['confirmada','Confirmada','#0fb5c8'],['realizada','Realizada','#17a566'],['no_show','Não compareceu','#e5484d'],['reagendar','Reagendar','#e8a008'],['cancelada','Cancelada','#7b87a8']];
+const col=k=>(ST.find(x=>x[0]==k)||ST[0])[2],sname=k=>(ST.find(x=>x[0]==k)||ST[0])[1];
+const done=a=>a.status=='realizada'||a.status=='no_show';
+const inativa=a=>['realizada','no_show','reagendar','cancelada'].includes(a.status);
+const CIDADES=['Americana','Campinas','Sorocaba','São Paulo','Franco da Rocha','Ribeirão Preto','Santos','Jundiaí','Piracicaba','Limeira','Sumaré','Hortolândia','Indaiatuba','Santa Bárbara d\'Oeste','Nova Odessa','Barueri','Guarulhos','Osasco','São Bernardo do Campo'];
+$('cidades').innerHTML=CIDADES.map(c=>`<option value="${esc(c)}">`).join('');
+function toast(t){const e=$('toast');e.textContent=t;e.classList.add('on');clearTimeout(toast.t);toast.t=setTimeout(()=>e.classList.remove('on'),3200)}
+
+/* ---------- Firebase (login + Firestore em tempo real) ---------- */
+const falta=CFG.apiKey.startsWith('COLE');
+if(falta){$('lm').textContent='Falta configurar o projeto: cole o firebaseConfig no começo do código (CFG).';$('lb').disabled=true}
+let auth=null,db=null;
+if(!falta){const app=initializeApp(CFG);auth=getAuth(app);db=getFirestore(app)}
+let me=null,P={},A=[],view=null,sel=null,sel2=null,dia='todos',cons5=null,M2=null,G5=null,lastDay=tod(),unsubs=[];
+$('lf').onsubmit=async e=>{e.preventDefault();$('lb').disabled=true;$('lm').textContent='';
+ try{await signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value)}catch(err){$('lm').textContent='E-mail ou senha incorretos.'}
+ $('lb').disabled=false};
+function boot(){onAuthStateChanged(auth,async u=>{
+ unsubs.forEach(f=>f());unsubs=[];me=null;
+ if(!u){$('nav').innerHTML='';$('who').innerHTML='';go('login');return}
+ try{const ref=doc(db,'usuarios',u.uid),s=await getDoc(ref);
+  if(!s.exists())await setDoc(ref,{nome:(u.email||'').split('@')[0],papel:'sdr'})}
+ catch(e){toast('Não foi possível ler o perfil: '+e.message);return}
+ listen(u.uid)})}
+function listen(uid){let gotU=false,gotA=false;
+ const corte=(()=>{const d=new Date();d.setDate(d.getDate()-60);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())})();
+ const refresh=()=>{if(!gotU||!gotA||!P[uid])return;
+  const novo=!me||me.papel!=P[uid].papel;me={...P[uid]};fillSelects();
+  if(novo){buildNav();go(view&&view!='login'?view:(me.papel=='consultor'?'dia':me.papel=='sdr'?'novo':'kan'))}
+  else{const f=document.activeElement;if(f&&f.closest&&f.closest('#list5,#side,#form')&&f.matches('input,textarea,select'))return;$('who').firstChild.textContent=me.nome+' · '+me.papel;render()}};
+ unsubs.push(onSnapshot(collection(db,'usuarios'),s=>{P={};s.forEach(d=>P[d.id]={id:d.id,...d.data()});gotU=true;refresh()},err=>toast('Sem acesso aos usuários: '+err.message)));
+ unsubs.push(onSnapshot(query(collection(db,'agendas'),where('dia','>=',corte),orderBy('dia')),s=>{
+  A=s.docs.map(d=>({...d.data(),id:d.id,h:(d.data().hora||'00:00').slice(0,5)})).sort((a,b)=>(a.dia+a.h).localeCompare(b.dia+b.h));gotA=true;refresh()},err=>toast('Sem acesso às agendas: '+err.message)))}
+async function sair(){await signOut(auth);location.reload()}
+const consultores=()=>Object.values(P).filter(x=>x.papel!='sdr').sort((a,b)=>a.nome.localeCompare(b.nome));
+function fillSelects(){const c=consultores(),v=$('fcs').value;$('fcs').innerHTML=c.map(x=>`<option value="${x.id}">${esc(x.nome)}</option>`).join('');if(v)$('fcs').value=v;else if(me&&P[me.id]&&me.papel!='sdr')$('fcs').value=me.id;
+ if(!$('fd').value)$('fd').value=tod();$('fd').min=tod()}
+
+/* ---------- navegação por perfil ---------- */
+function buildNav(){const p=me.papel,t=[];
+ if(p!='consultor')t.push(['novo','Nova agenda']);t.push(['kan','Kanban']);if(p!='sdr')t.push(['dia','Agenda do dia']);
+ $('nav').innerHTML=t.map(([k,n])=>`<button data-v="${k}">${n}</button>`).join('');
+ $('who').innerHTML=`<span>${esc(me.nome)} · ${p}</span> <button class="out" id="sair">Sair</button>`;$('sair').onclick=sair}
+$('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.v)};
+function go(v){view=v;document.querySelectorAll('.v').forEach(s=>s.classList.toggle('on',s.id=='v-'+v));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
+ if(v=='dia')open5();render();scrollTo(0,0)}
+function render(){if(view=='kan'){fillDias();kan()}if(view=='dia')render5(false)}
+
+/* ---------- mapas e endereços ---------- */
+const ios=/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform=='MacIntel'&&navigator.maxTouchPoints>1);
+const qs=a=>encodeURIComponent(a.endereco+', '+a.cidade+', SP, Brasil');
+const has=a=>a.lat!=null&&a.lng!=null;
+const dest=a=>has(a)?a.lat+','+a.lng:qs(a);
+const mapsUrl=a=>'https://www.google.com/maps/search/?api=1&query='+qs(a);
+const navUrl=a=>ios?'https://maps.apple.com/?dirflg=d&daddr='+dest(a):'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+dest(a);
+const wazeUrl=a=>has(a)?'https://waze.com/ul?navigate=yes&ll='+a.lat+','+a.lng:'https://waze.com/ul?navigate=yes&q='+qs(a);
+async function nom(q){const k='geo:'+q;try{const c=localStorage.getItem(k);if(c)return JSON.parse(c)}catch(e){}
+ try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q));const j=await r.json();if(j[0]){const v=[+j[0].lat,+j[0].lon];try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}return v}}catch(e){}return null}
+async function geo(end,cid){return await nom(end+', '+cid+', SP, Brasil')}
+function km(p,q){const r=x=>x*Math.PI/180,h=Math.sin(r(q[0]-p[0])/2)**2+Math.cos(r(p[0]))*Math.cos(r(q[0]))*Math.sin(r(q[1]-p[1])/2)**2;return 12742*Math.asin(Math.sqrt(h))}
+
+/* ---------- Nova agenda (com alerta de viabilidade) ---------- */
+function conflito(f,ll){const li=[];let w=0,sem=0;
+ A.filter(a=>a.consultor_id==f.consultor_id&&a.dia==f.dia&&!inativa(a)).forEach(a=>{
+  const [p,s]=mn(a.h)<=mn(f.hora)?[{h:a.h,ll:has(a)?[a.lat,a.lng]:null,n:a.contabilidade,c:a.cidade},{h:f.hora,ll,n:'nova',c:f.cidade}]:[{h:f.hora,ll,n:'nova',c:f.cidade},{h:a.h,ll:has(a)?[a.lat,a.lng]:null,n:a.contabilidade,c:a.cidade}];
+  const gap=mn(s.h)-mn(p.h)-60;
+  if(gap<0){w=2;li.push(`${a.h} em ${esc(a.cidade)} (${esc(a.contabilidade)}): os horários se sobrepõem`);return}
+  if(!p.ll||!s.ll){sem++;li.push(`${a.h} em ${esc(a.cidade)} (${esc(a.contabilidade)}): sem localização exata, não deu para estimar o deslocamento`);return}
+  const t=Math.round(km(p.ll,s.ll)*1.3/70*60),lv=t>gap?2:t>gap*.7?1:0;w=Math.max(w,lv);
+  li.push(`${a.h} em ${esc(a.cidade)} (${esc(a.contabilidade)}): intervalo de ${gap} min, deslocamento estimado de ${t} min`)});
+ return {w,li,sem}}
+function mostra(r,force){const T=['Cabe na rota do consultor','Encaixe apertado','Provavelmente inviável'][r.w];
+ $('chk').innerHTML=`<div class="alert l${r.w}"><h3>${r.li.length?T:'Consultor livre neste dia'}</h3>`+(r.li.length?`<ul>${r.li.map(x=>`<li>${x}</li>`).join('')}</ul>`:'<p>Nenhuma outra reunião deste consultor neste dia.</p>')+
+ (force?'<p><button class="btn alt" type="button" id="mesmo">Agendar mesmo assim</button></p>':'')+'<p style="color:var(--mut);font-size:12px">Estimativa pela distância em linha reta. Não considera trânsito.</p></div>'}
+$('form').onsubmit=async e=>{e.preventDefault();await salvar(false)};
+async function salvar(force){const b=$('go');b.disabled=true;b.textContent='Localizando o endereço…';
+ const f={sdr_id:me.id,consultor_id:$('fcs').value,nome_dono:$('fo').value.trim(),contabilidade:$('fn').value.trim(),endereco:$('fe').value.trim(),cidade:$('fc').value.trim(),dia:$('fd').value,hora:$('fh').value,
+  qtd_cnpjs:$('fq').value?+$('fq').value:null,resumo_ligacao:$('fr').value.trim()||null,telefone_cliente:$('ft').value.trim()||null,email_cliente:$('fm').value.trim()||null};
+ const ex=await geo(f.endereco,f.cidade);const exato=!!ex;let ll=ex||await nom(f.cidade+', SP, Brasil');
+ if(ll){f.lat=ll[0];f.lng=ll[1]}
+ const r=conflito(f,ll);mostra(r,r.w==2&&!force);
+ if(!exato)$('chk').insertAdjacentHTML('beforeend','<p class="sub" style="margin-top:10px">Não achei o endereço exato; o ponto no mapa ficará no centro da cidade. Confira o endereço.</p>');
+ if(r.w==2&&!force){b.disabled=false;b.textContent='Verificar e agendar';const m=$('mesmo');if(m)m.onclick=()=>salvar(true);return}
+ if(f.lat==null){f.lat=null;f.lng=null}
+ try{await addDoc(collection(db,'agendas'),{...f,status:'agendada',resultado:null,criado_em:serverTimestamp()})}
+ catch(error){b.disabled=false;b.textContent='Verificar e agendar';toast('Não foi possível salvar: '+error.message);return}
+ b.disabled=false;b.textContent='Verificar e agendar';
+ toast('Agenda criada. Já aparece para o consultor.');$('form').reset();$('fd').value=tod();$('chk').innerHTML='';go('kan')}
+
+/* ---------- Kanban ---------- */
+function fillDias(){const ds=[...new Set(A.map(a=>a.dia))].sort();$('fdia').innerHTML='<option value="todos">Todos os dias</option>'+ds.map(d=>`<option value="${d}">${fd(d)}${d==tod()?' (hoje)':''}</option>`).join('');$('fdia').value=ds.includes(dia)?dia:'todos';dia=$('fdia').value}
+const vis=a=>dia=='todos'||a.dia==dia;
+function card(a){const on=sel==a.id;return `<div class="ag ${on?'on':''}" tabindex="0" draggable="true" data-id="${a.id}" style="border-left-color:${col(a.status)}"><div class="hr">${fd(a.dia)} · ${a.h}</div><strong>${esc(a.contabilidade)}</strong><span>${esc(a.endereco)}, ${esc(a.cidade)}</span><span>${esc(a.nome_dono)} · SDR ${esc((P[a.sdr_id]||{}).nome)} · ${a.qtd_cnpjs??'?'} CNPJs</span>`+
+ (on?`<p class="rs">${esc(a.resumo_ligacao)}</p>${a.resultado?`<p class="rs"><b>Resultado:</b> ${esc(a.resultado)}</p>`:''}<span>${esc(a.telefone_cliente)} · ${esc(a.email_cliente)}</span><label for="cs${a.id}" style="margin-top:8px">Consultor responsável</label><select id="cs${a.id}" data-c="${a.id}">${consultores().map(c=>`<option value="${c.id}" ${c.id==a.consultor_id?'selected':''}>${esc(c.nome)}</option>`).join('')}</select><div class="ac"><a class="btn" target="_blank" rel="noopener" href="${mapsUrl(a)}">Abrir no Google Maps</a>${a.status!='cancelada'?`<button class="btn alt" data-cancel="${a.id}">Cancelar agenda</button>`:''}</div>`:'')+'</div>'}
+function kan(){const l=A.filter(vis);$('side').innerHTML=ST.map(([k,n,c])=>{const x=l.filter(a=>a.status==k).sort((p,r)=>(p.dia+p.h).localeCompare(r.dia+r.h));
+ return `<section class="col" data-k="${k}"><h3><i style="background:${c}"></i>${n}<b>${x.length}</b></h3>${x.map(card).join('')||'<p class="vz">Solte uma agenda aqui</p>'}</section>`}).join('')}
+$('fdia').onchange=e=>{dia=e.target.value;sel=null;kan()};
+async function patch(id,campos,msg){try{await updateDoc(doc(db,'agendas',id),campos)}catch(e){toast('Sem permissão ou falha ao salvar: '+e.message);return false}
+ const a=A.find(x=>x.id==id);if(a)Object.assign(a,campos);if(msg)toast(msg);return true}
+const sd=$('side');
+sd.onclick=async e=>{const c=e.target.closest('[data-cancel]');if(c){if(confirm('Cancelar esta agenda?')){if(await patch(c.dataset.cancel,{status:'cancelada'},'Agenda cancelada.'))kan()}return}
+ if(e.target.closest('a,select'))return;const a=e.target.closest('.ag');if(a){sel=a.dataset.id;kan()}};
+sd.onchange=async e=>{const s=e.target.closest('[data-c]');if(s){const a=A.find(x=>x.id==s.dataset.c);if(await patch(a.id,{consultor_id:s.value},'Agenda passada para '+P[s.value].nome+'.'))kan();else kan()}};
+sd.onkeydown=e=>{if(e.key=='Enter'){const a=e.target.closest('.ag');if(a&&e.target==a){sel=a.dataset.id;kan()}}};
+sd.ondragstart=e=>{const a=e.target.closest('.ag');if(a)e.dataTransfer.setData('t',a.dataset.id)};
+sd.ondragover=e=>e.preventDefault();
+sd.ondrop=async e=>{e.preventDefault();const c=e.target.closest('.col'),a=A.find(x=>x.id==e.dataTransfer.getData('t'));if(c&&a&&a.status!=c.dataset.k){await patch(a.id,{status:c.dataset.k});kan()}};
+
+/* ---------- Agenda do consultor (somente hoje) ---------- */
+const dayList=()=>A.filter(a=>a.dia==tod()&&a.consultor_id==cons5&&a.status!='reagendar'&&a.status!='cancelada').sort((a,b)=>a.h.localeCompare(b.h));
+function ic5(n,a,on){const z=on?42:32;return L.divIcon({className:'',html:`<div class="nm ${on?'on':''} ${done(a)?'dn':''}" style="--c:${col(a.status)}">${done(a)?'✓':n}</div>`,iconSize:[z,z],iconAnchor:[z/2,z/2]})}
+function open5(){cons5=me.papel=='admin'?(cons5||me.id):me.id;
+ if(typeof L=='undefined'){$('map5').innerHTML='<p class="sub" style="padding:20px">Não foi possível carregar o mapa. Verifique a conexão.</p>';return}
+ if(!M2){M2=L.map('map5').setView([-22.9,-47.2],8);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(M2);G5=L.layerGroup().addTo(M2)}
+ sel2=null;render5(true);setTimeout(()=>{M2.invalidateSize();render5(true)},80)}
+function render5(fit){if(view!='dia')return;
+ const L5=dayList(),pend=L5.filter(a=>!done(a)),dn=L5.filter(done);
+ $('hoje').textContent=wd(tod(),{weekday:'long',day:'numeric',month:'long'});
+ $('quem5').innerHTML=me.papel=='admin'?`<label for="qc" style="display:inline">Consultor:</label> <select id="qc" style="width:auto">${consultores().map(c=>`<option value="${c.id}" ${c.id==cons5?'selected':''}>${esc(c.nome)}</option>`).join('')}</select>`:'Agenda do consultor · '+esc(me.nome);
+ const pct=L5.length?Math.round(dn.length/L5.length*100):0;
+ $('prog').innerHTML=`<b>${dn.length} de ${L5.length} concluídas</b> · ${pend.length} pendente${pend.length==1?'':'s'}<div class="bar"><i style="width:${pct}%"></i></div>`;
+ if(!L5.some(a=>a.id==sel2))sel2=(pend[0]||dn[0]||{}).id||null;
+ const nxt=pend[0]&&pend[0].id;
+ const c5=a=>{const n=L5.indexOf(a)+1,on=sel2==a.id;
+  return `<div class="c5 ${on?'on':''} ${done(a)?'dn':''}" tabindex="0" data-id="${a.id}" style="border-left-color:${col(a.status)}"><div class="row"><span class="tm">${a.h}</span><div style="min-width:0"><strong>${esc(a.contabilidade)}${a.id==nxt?'<span class="nx">Próxima</span>':''}</strong><span class="ad">${esc(a.endereco)}, ${esc(a.cidade)}</span></div><span class="tg" style="color:${col(a.status)}">${done(a)?(a.status=='realizada'?'✓ ':'')+sname(a.status):a.status=='confirmada'?'Confirmada':'Pendente'}</span></div>`+
+  (on?`<div class="more"><div class="info">${esc(a.nome_dono)} · ${a.telefone_cliente?`<a href="tel:${esc(a.telefone_cliente.replace(/[^\d+]/g,''))}">${esc(a.telefone_cliente)}</a>`:'sem telefone'}<br>${a.qtd_cnpjs??'?'} CNPJs · ${esc(a.resumo_ligacao)}${a.resultado?`<br><b>Resultado:</b> ${esc(a.resultado)}`:''}</div>
+   <div class="big"><a class="btn" target="_blank" rel="noopener" href="${navUrl(a)}">Navegar até o cliente</a><a class="btn alt" target="_blank" rel="noopener" href="${wazeUrl(a)}">Waze</a></div>
+   ${done(a)?`<button class="lk" data-reopen="${a.id}">Reabrir esta agenda</button>`:`<div><label for="nt${a.id}">Observação rápida (opcional)</label><input id="nt${a.id}" placeholder="Ex.: pediu proposta, volta na terça"></div><div class="res"><button data-res="realizada" data-id="${a.id}">Realizada</button><button data-res="no_show" data-id="${a.id}">Não compareceu</button><button data-res="reagendar" data-id="${a.id}">Reagendar</button></div>`}
+   <button class="lk" data-crm="${a.id}">Abrir no Kanban (histórico e edição)</button>${has(a)?'':'<span style="font-size:12px;color:var(--warn)">Sem localização exata no mapa: confira o endereço.</span>'}</div>`:'')+'</div>'};
+ $('list5').innerHTML=L5.length?pend.map(c5).join('')+(dn.length?`<div class="hd">Concluídas (${dn.length})</div>`+dn.map(c5).join(''):''):'<div class="empty"><b>Nenhuma agenda para hoje.</b><br>Quando o SDR marcar uma reunião para este dia, ela aparece aqui sozinha.</div>';
+ map5(fit,L5);const q=$('qc');if(q)q.onchange=()=>{cons5=q.value;sel2=null;render5(true)}}
+function map5(fit,L5){if(!M2)return;G5.clearLayers();const ok=L5.filter(has);
+ L5.forEach((a,i)=>{if(has(a))L.marker([a.lat,a.lng],{icon:ic5(i+1,a,sel2==a.id),zIndexOffset:sel2==a.id?1000:0}).addTo(G5).bindTooltip(a.h+' · '+a.contabilidade).on('click',()=>pick5(a.id))});
+ if(ok.length>1)L.polyline(ok.map(a=>[a.lat,a.lng]),{color:'#1e63e9',weight:3,opacity:.5,dashArray:'6 8'}).addTo(G5);
+ if(fit&&ok.length)M2.fitBounds(ok.map(a=>[a.lat,a.lng]),{padding:[50,50],maxZoom:13})}
+function pick5(id,noScroll){sel2=id;const a=A.find(x=>x.id==id);render5(false);if(M2&&a&&has(a))M2.flyTo([a.lat,a.lng],16,{duration:.9});
+ if(!noScroll){const el=$('list5').querySelector('.c5.on');if(el)el.scrollIntoView({block:'nearest',behavior:'smooth'})}}
+$('list5').onclick=async e=>{
+ const r=e.target.closest('[data-res]');
+ if(r){const a=A.find(x=>x.id==r.dataset.id),n=$('nt'+a.id),c={status:r.dataset.res};if(n&&n.value.trim())c.resultado=n.value.trim();
+  if(await patch(a.id,c,a.status=='reagendar'||c.status=='reagendar'?'Enviada ao Kanban como "Reagendar". Some da sua agenda de hoje.':'Resultado registrado e enviado ao CRM.')){const nx=dayList().find(x=>!done(x));render5(false);if(nx)pick5(nx.id,true)}return}
+ const ro=e.target.closest('[data-reopen]');if(ro){if(await patch(ro.dataset.reopen,{status:'agendada'}))render5(false);return}
+ const cr=e.target.closest('[data-crm]');if(cr){sel=cr.dataset.crm;dia='todos';go('kan');return}
+ if(e.target.closest('a,input,button'))return;
+ const c=e.target.closest('.c5');if(c)pick5(c.dataset.id)};
+$('list5').onkeydown=e=>{if(e.key=='Enter'&&e.target.classList.contains('c5'))pick5(e.target.dataset.id)};
+
+/* ---------- virada do dia ---------- */
+function checkDay(){if(lastDay!=tod()){lastDay=tod();sel2=null;if($('fd'))$('fd').min=tod();render();if(view=='dia')render5(true);toast('Novo dia: agenda atualizada.')}}
+setInterval(checkDay,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkDay()});
+if(auth)boot();
+</script>
+</body>
+</html>

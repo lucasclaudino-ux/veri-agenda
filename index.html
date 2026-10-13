@@ -75,6 +75,17 @@ textarea{resize:vertical;min-height:70px}
 .empty{text-align:center;padding:36px 16px;color:var(--mut)}
 #toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%) translateY(30px);background:var(--navy);color:#fff;padding:12px 18px;border-radius:12px;opacity:0;pointer-events:none;transition:.3s;z-index:9999;max-width:90vw}
 #toast.on{opacity:1;transform:translateX(-50%)}
+.dnav{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px}
+.dnav button{font:inherit;font-weight:800;font-size:18px;line-height:1;background:var(--card);color:var(--blue);border:1px solid var(--line);border-radius:10px;min-width:44px;min-height:44px;padding:0 12px;cursor:pointer}
+.dnav button.tx{font-size:13px;font-weight:600}
+.dnav input{width:auto;min-height:44px}
+.slots{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
+.slots span{font-size:12.5px;font-weight:600;border-radius:99px;padding:4px 12px;border:1px solid var(--line);background:var(--card)}
+.slots .lv{border-color:var(--ok);color:var(--ok)}.slots .oc{border-color:var(--warn);color:#a87100}
+.ro{font-size:12.5px;color:var(--mut);margin:0 0 8px}
+dialog{background:var(--card);color:var(--ink);border:1px solid var(--line);border-radius:14px;padding:20px;width:min(720px,94vw);max-height:92vh;overflow:auto}
+dialog::backdrop{background:#0a1a4a99}
+dialog h2{margin-top:0}
 @media(max-width:900px){.two,.grid{grid-template-columns:1fr}header{padding:10px 14px}main{padding:14px}.who{margin-left:0}
  .split5{grid-template-columns:1fr;height:auto;min-height:0}.split5 .mapbox{height:260px}#list5{overflow:visible}#hoje{font-size:22px}}
 @media(prefers-reduced-motion:reduce){.bar i,#toast{transition:none}}
@@ -137,7 +148,8 @@ textarea{resize:vertical;min-height:70px}
 
 <section class="v" id="v-dia">
   <div class="top5">
-    <div><div style="color:var(--mut);font-size:13px;font-weight:600" id="quem5"></div><h1 id="hoje"></h1></div>
+    <div><div style="color:var(--mut);font-size:13px;font-weight:600" id="quem5"></div><h1 id="hoje"></h1>
+      <div class="dnav" role="group" aria-label="Navegar entre os dias"><button type="button" id="dprev" aria-label="Dia anterior">‹</button><input type="date" id="dpick" aria-label="Escolher o dia"><button type="button" id="dnext" aria-label="Próximo dia">›</button><button type="button" class="tx" id="dhoje">Hoje</button></div></div>
     <div class="prog" id="prog"></div>
   </div>
   <div class="split5">
@@ -147,6 +159,24 @@ textarea{resize:vertical;min-height:70px}
 </section>
 
 </main>
+<dialog id="dlg" aria-labelledby="dt">
+  <form id="ef" class="grid" autocomplete="off">
+    <h2 id="dt" class="full">Editar agenda</h2>
+    <div><label for="e_o">Nome do dono</label><input id="e_o" required></div>
+    <div><label for="e_n">Contabilidade</label><input id="e_n" required></div>
+    <div><label for="e_c">Cidade</label><input id="e_c" list="cidades" required></div>
+    <div><label for="e_e">Endereço</label><input id="e_e" required></div>
+    <div><label for="e_d">Data</label><input id="e_d" type="date" required></div>
+    <div><label for="e_h">Horário</label><input id="e_h" type="time" required></div>
+    <div><label for="e_q">CNPJs que atende hoje</label><input id="e_q" type="number" min="0"></div>
+    <div><label for="e_cs">Consultor</label><select id="e_cs" required></select></div>
+    <div><label for="e_t">Telefone do contato</label><input id="e_t" type="tel"></div>
+    <div><label for="e_m">E-mail do cliente</label><input id="e_m" type="email"></div>
+    <div class="full"><label for="e_r">O que foi falado na ligação</label><textarea id="e_r"></textarea></div>
+    <div class="full" id="e_chk"></div>
+    <div class="full" style="display:flex;gap:10px;flex-wrap:wrap"><button class="btn" id="e_go">Salvar alterações</button><button class="btn alt" type="button" id="e_x">Cancelar</button></div>
+  </form>
+</dialog>
 <div id="toast" role="status" aria-live="polite"></div>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -178,7 +208,7 @@ if(falta){$('lm').textContent='Falta configurar o projeto: cole o firebaseConfig
 let auth=null,db=null;
 if(!falta){const app=initializeApp(CFG);auth=getAuth(app);db=getFirestore(app)}
 let modo='login',nomeNovo=null,papelNovo=null;
-let me=null,P={},A=[],view=null,sel=null,sel2=null,dia='todos',cons5=null,M2=null,G5=null,lastDay=tod(),unsubs=[];
+let me=null,P={},A=[],view=null,sel=null,sel2=null,dia='todos',cons5=null,M2=null,G5=null,lastDay=tod(),dsel=tod(),unsubs=[];
 $('cx').hidden=true;$('cx').style.display='none';
 $('cad').onclick=()=>{modo=modo=='login'?'cad':'login';const c=modo=='cad';$('cx').hidden=!c;$('cx').style.display=c?'grid':'none';$('lb').textContent=c?'Criar conta':'Entrar';$('cad').textContent=c?'Já tenho conta. Entrar':'Primeiro acesso? Criar minha conta';$('pw').autocomplete=c?'new-password':'current-password';$('lm').textContent=''};
 $('lf').onsubmit=async e=>{e.preventDefault();if(!auth)return;$('lb').disabled=true;$('lm').textContent='';const em=$('em').value.trim(),pw=$('pw').value;
@@ -213,7 +243,7 @@ function fillSelects(){const c=consultores(),v=$('fcs').value;$('fcs').innerHTML
 
 /* ---------- navegação por perfil ---------- */
 function buildNav(){const p=me.papel,t=[];
- if(p!='consultor')t.push(['novo','Nova agenda']);t.push(['kan','Kanban']);if(p!='sdr')t.push(['dia','Agenda do dia']);
+ if(p!='consultor')t.push(['novo','Nova agenda']);t.push(['kan','Kanban']);t.push(['dia',p=='sdr'?'Mapa dos consultores':'Agenda do dia']);
  $('nav').innerHTML=t.map(([k,n])=>`<button data-v="${k}">${n}</button>`).join('');
  $('who').innerHTML=`<span>${esc(me.nome)} · ${p}</span> <button class="out" id="sair">Sair</button>`;$('sair').onclick=sair}
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.v)};
@@ -233,7 +263,7 @@ const GAS='https://script.google.com/macros/s/AKfycbyZ2UiyGvGiz6bg5mtjKu1I_5kUQI
 async function api(b){if(GAS.startsWith('COLE')||!auth||!auth.currentUser)return null;try{const t=await auth.currentUser.getIdToken(),r=await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,token:t})});return await r.json()}catch(e){return {ok:false,erro:String(e)}}}
 async function convite(id,a){if(GAS.startsWith('COLE'))return;const c=P[a.consultor_id]||{};
  if(!c.email){toast('Agenda criada, mas o consultor ainda não tem e-mail cadastrado: o convite não foi enviado.');return}
- const h=a.hora||a.h,r=await api({acao:'criar',titulo:TITULO+a.contabilidade,inicio:a.dia+'T'+h.slice(0,5),minutos:DUR,local:a.endereco+', '+a.cidade+', SP',descricao:[a.nome_dono,a.telefone_cliente,a.email_cliente,a.qtd_cnpjs?a.qtd_cnpjs+' CNPJs':'',a.resumo_ligacao].filter(Boolean).join('\n'),convidados:[c.email,a.email_cliente].filter(Boolean)});
+ const h=a.hora||a.h,r=await api({acao:'criar',titulo:TITULO+a.contabilidade+' | Consultor: '+(c.nome||''),consultor_nome:c.nome||'',consultor_email:c.email,inicio:a.dia+'T'+h.slice(0,5),minutos:DUR,local:a.endereco+', '+a.cidade+', SP',descricao:['Consultor: '+(c.nome||'')+' ('+c.email+')',a.nome_dono,a.telefone_cliente,a.email_cliente,a.qtd_cnpjs?a.qtd_cnpjs+' CNPJs':'',a.resumo_ligacao].filter(Boolean).join('\n'),convidados:[c.email,a.email_cliente].filter(Boolean)});
  if(r&&r.ok)await patch(id,{convite_id:r.id},'Convite enviado no Google Agenda para '+c.nome+'.');else toast('Agenda criada, mas o convite falhou: '+((r&&r.erro)||'sem resposta'))}
 async function cancelaConvite(a){if(a&&a.convite_id)await api({acao:'cancelar',id:a.convite_id})}
 const gcal=a=>{const d=a.dia.replace(/-/g,''),i=mn(a.h),f=x=>d+'T'+pad(Math.floor(x/60))+pad(x%60)+'00';return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Reunião: '+a.contabilidade)+'&dates='+f(i)+'/'+f(i+DUR)+'&ctz=America/Sao_Paulo&location='+qs(a)+'&details='+encodeURIComponent((a.nome_dono||'')+' · '+(a.telefone_cliente||'')+'\n'+(a.resumo_ligacao||''))};
@@ -280,14 +310,14 @@ async function salvar(force){const b=$('go');b.disabled=true;b.textContent='Loca
 function fillDias(){const ds=[...new Set(A.map(a=>a.dia))].sort();$('fdia').innerHTML='<option value="todos">Todos os dias</option>'+ds.map(d=>`<option value="${d}">${fd(d)}${d==tod()?' (hoje)':''}</option>`).join('');$('fdia').value=ds.includes(dia)?dia:'todos';dia=$('fdia').value}
 const vis=a=>dia=='todos'||a.dia==dia;
 function card(a){const on=sel==a.id;return `<div class="ag ${on?'on':''}" tabindex="0" draggable="true" data-id="${a.id}" style="border-left-color:${col(a.status)}"><div class="hr">${fd(a.dia)} · ${a.h}</div><strong>${esc(a.contabilidade)}</strong><span>${esc(a.endereco)}, ${esc(a.cidade)}</span><span>${esc(a.nome_dono)} · SDR ${esc((P[a.sdr_id]||{}).nome)} · ${a.qtd_cnpjs??'?'} CNPJs</span>`+
- (on?`<p class="rs">${esc(a.resumo_ligacao)}</p>${a.resultado?`<p class="rs"><b>Resultado:</b> ${esc(a.resultado)}</p>`:''}<span>${esc(a.telefone_cliente)} · ${esc(a.email_cliente)}</span><label for="cs${a.id}" style="margin-top:8px">Consultor responsável</label><select id="cs${a.id}" data-c="${a.id}">${consultores().map(c=>`<option value="${c.id}" ${c.id==a.consultor_id?'selected':''}>${esc(c.nome)}</option>`).join('')}</select><div class="ac"><a class="btn" target="_blank" rel="noopener" href="${mapsUrl(a)}">Abrir no Google Maps</a><a class="btn alt" target="_blank" rel="noopener" href="${gcal(a)}">Google Agenda</a>${a.status!='cancelada'?`<button class="btn alt" data-cancel="${a.id}">Cancelar agenda</button>`:''}</div>`:'')+'</div>'}
+ (on?`<p class="rs">${esc(a.resumo_ligacao)}</p>${a.resultado?`<p class="rs"><b>Resultado:</b> ${esc(a.resultado)}</p>`:''}<span>${esc(a.telefone_cliente)} · ${esc(a.email_cliente)}</span><label for="cs${a.id}" style="margin-top:8px">Consultor responsável</label><select id="cs${a.id}" data-c="${a.id}">${consultores().map(c=>`<option value="${c.id}" ${c.id==a.consultor_id?'selected':''}>${esc(c.nome)}</option>`).join('')}</select><div class="ac"><a class="btn" target="_blank" rel="noopener" href="${mapsUrl(a)}">Abrir no Google Maps</a><a class="btn alt" target="_blank" rel="noopener" href="${gcal(a)}">Google Agenda</a>${me.papel!='consultor'&&a.status!='cancelada'?`<button class="btn" data-edit="${a.id}">Editar agenda</button>`:''}${a.status!='cancelada'?`<button class="btn alt" data-cancel="${a.id}">Cancelar agenda</button>`:''}</div>`:'')+'</div>'}
 function kan(){const l=A.filter(vis);$('side').innerHTML=ST.map(([k,n,c])=>{const x=l.filter(a=>a.status==k).sort((p,r)=>(p.dia+p.h).localeCompare(r.dia+r.h));
  return `<section class="col" data-k="${k}"><h3><i style="background:${c}"></i>${n}<b>${x.length}</b></h3>${x.map(card).join('')||'<p class="vz">Solte uma agenda aqui</p>'}</section>`}).join('')}
 $('fdia').onchange=e=>{dia=e.target.value;sel=null;kan()};
 async function patch(id,campos,msg){try{await updateDoc(doc(db,'agendas',id),campos)}catch(e){toast('Sem permissão ou falha ao salvar: '+e.message);return false}
  const a=A.find(x=>x.id==id);if(a)Object.assign(a,campos);if(msg)toast(msg);return true}
 const sd=$('side');
-sd.onclick=async e=>{const c=e.target.closest('[data-cancel]');if(c){if(confirm('Cancelar esta agenda?')){if(await patch(c.dataset.cancel,{status:'cancelada'},'Agenda cancelada.')){kan();cancelaConvite(A.find(x=>x.id==c.dataset.cancel))}}return}
+sd.onclick=async e=>{const ed=e.target.closest('[data-edit]');if(ed){editar(ed.dataset.edit);return}const c=e.target.closest('[data-cancel]');if(c){if(confirm('Cancelar esta agenda?')){if(await patch(c.dataset.cancel,{status:'cancelada'},'Agenda cancelada.')){kan();cancelaConvite(A.find(x=>x.id==c.dataset.cancel))}}return}
  if(e.target.closest('a,select'))return;const a=e.target.closest('.ag');if(a){sel=a.dataset.id;kan()}};
 sd.onchange=async e=>{const s=e.target.closest('[data-c]');if(s){const a=A.find(x=>x.id==s.dataset.c);const r=inativa(a)?{w:0}:conflito({consultor_id:s.value,dia:a.dia,hora:a.h,cidade:a.cidade},has(a)?[a.lat,a.lng]:null,a.id);if(r.w==2&&me.papel!='admin'){toast('Não dá: '+P[s.value].nome+' tem conflito de horário ou deslocamento neste dia.');kan();return}if(await patch(a.id,{consultor_id:s.value},'Agenda passada para '+P[s.value].nome+'.')){kan();await cancelaConvite(a);a.convite_id=null;await convite(a.id,a)}else kan()}};
 sd.onkeydown=e=>{if(e.key=='Enter'){const a=e.target.closest('.ag');if(a&&e.target==a){sel=a.dataset.id;kan()}}};
@@ -296,25 +326,26 @@ sd.ondragover=e=>e.preventDefault();
 sd.ondrop=async e=>{e.preventDefault();const c=e.target.closest('.col'),a=A.find(x=>x.id==e.dataTransfer.getData('t'));if(c&&a&&a.status!=c.dataset.k){await patch(a.id,{status:c.dataset.k});kan();if(c.dataset.k=='cancelada')cancelaConvite(a)}};
 
 /* ---------- Agenda do consultor (somente hoje) ---------- */
-const dayList=()=>A.filter(a=>a.dia==tod()&&a.consultor_id==cons5&&a.status!='reagendar'&&a.status!='cancelada').sort((a,b)=>a.h.localeCompare(b.h));
+const dayList=()=>A.filter(a=>a.dia==dsel&&a.consultor_id==cons5&&a.status!='reagendar'&&a.status!='cancelada').sort((a,b)=>a.h.localeCompare(b.h));
 function ic5(n,a,on){const z=on?42:32;return L.divIcon({className:'',html:`<div class="nm ${on?'on':''} ${done(a)?'dn':''}" style="--c:${col(a.status)}">${done(a)?'✓':n}</div>`,iconSize:[z,z],iconAnchor:[z/2,z/2]})}
-function open5(){cons5=me.papel=='admin'?(cons5||me.id):me.id;
+function open5(){cons5=me.papel=='consultor'?me.id:(cons5||(me.papel=='admin'?me.id:(consultores()[0]||{}).id));
  if(typeof L=='undefined'){$('map5').innerHTML='<p class="sub" style="padding:20px">Não foi possível carregar o mapa. Verifique a conexão.</p>';return}
  if(!M2){M2=L.map('map5').setView([-22.9,-47.2],8);L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(M2);G5=L.layerGroup().addTo(M2)}
  sel2=null;render5(true);setTimeout(()=>{M2.invalidateSize();render5(true)},80)}
 function render5(fit){if(view!='dia')return;
  const L5=dayList(),pend=L5.filter(a=>!done(a)),dn=L5.filter(done);
- $('hoje').textContent=wd(tod(),{weekday:'long',day:'numeric',month:'long'});
- $('quem5').innerHTML=me.papel=='admin'?`<label for="qc" style="display:inline">Consultor:</label> <select id="qc" style="width:auto">${consultores().map(c=>`<option value="${c.id}" ${c.id==cons5?'selected':''}>${esc(c.nome)}</option>`).join('')}</select>`:'Agenda do consultor · '+esc(me.nome);
+ $('hoje').textContent=wd(dsel,{weekday:'long',day:'numeric',month:'long'})+(dsel==tod()?' · hoje':'');$('dpick').value=dsel;
+ $('quem5').innerHTML=me.papel!='consultor'?`<label for="qc" style="display:inline">${me.papel=='sdr'?'Ver agendas do consultor':'Consultor'}:</label> <select id="qc" style="width:auto">${consultores().map(c=>`<option value="${c.id}" ${c.id==cons5?'selected':''}>${esc(c.nome)}</option>`).join('')}</select>`:'Agenda do consultor · '+esc(me.nome);
  const pct=L5.length?Math.round(dn.length/L5.length*100):0;
- $('prog').innerHTML=`<b>${dn.length} de ${L5.length} concluídas</b> · ${pend.length} pendente${pend.length==1?'':'s'}<div class="bar"><i style="width:${pct}%"></i></div>`;
+ const ro=me.papel=='sdr',manha=L5.filter(a=>mn(a.h)<LI),tarde=L5.filter(a=>mn(a.h)>=LI),sl=(n,x)=>x.length?`<span class="oc">${n}: ocupada (${x.map(a=>a.h+' '+esc(a.cidade)).join(', ')})</span>`:`<span class="lv">${n}: livre</span>`;
+ $('prog').innerHTML=ro?`<b>Disponibilidade neste dia</b><div class="slots">${sl('Manhã',manha)}${sl('Tarde',tarde)}</div>`:`<b>${dn.length} de ${L5.length} concluídas</b> · ${pend.length} pendente${pend.length==1?'':'s'}<div class="bar"><i style="width:${pct}%"></i></div>`;
  if(!L5.some(a=>a.id==sel2))sel2=(pend[0]||dn[0]||{}).id||null;
- const nxt=pend[0]&&pend[0].id;
+ const nxt=dsel==tod()&&pend[0]&&pend[0].id;
  const c5=a=>{const n=L5.indexOf(a)+1,on=sel2==a.id;
   return `<div class="c5 ${on?'on':''} ${done(a)?'dn':''}" tabindex="0" data-id="${a.id}" style="border-left-color:${col(a.status)}"><div class="row"><span class="tm">${a.h}</span><div style="min-width:0"><strong>${esc(a.contabilidade)}${a.id==nxt?'<span class="nx">Próxima</span>':''}</strong><span class="ad">${esc(a.endereco)}, ${esc(a.cidade)}</span></div><span class="tg" style="color:${col(a.status)}">${done(a)?(a.status=='realizada'?'✓ ':'')+sname(a.status):a.status=='confirmada'?'Confirmada':'Pendente'}</span></div>`+
   (on?`<div class="more"><div class="info">${esc(a.nome_dono)} · ${a.telefone_cliente?`<a href="tel:${esc(a.telefone_cliente.replace(/[^\d+]/g,''))}">${esc(a.telefone_cliente)}</a>`:'sem telefone'}<br>${a.qtd_cnpjs??'?'} CNPJs · ${esc(a.resumo_ligacao)}${a.resultado?`<br><b>Resultado:</b> ${esc(a.resultado)}`:''}</div>
-   <div class="big"><a class="btn" target="_blank" rel="noopener" href="${navUrl(a)}">Navegar até o cliente</a><a class="btn alt" target="_blank" rel="noopener" href="${wazeUrl(a)}">Waze</a></div><a class="btn alt" target="_blank" rel="noopener" href="${gcal(a)}">Adicionar ao Google Agenda</a>
-   ${done(a)?`<button class="lk" data-reopen="${a.id}">Reabrir esta agenda</button>`:`<div><label for="nt${a.id}">Observação rápida (opcional)</label><input id="nt${a.id}" placeholder="Ex.: pediu proposta, volta na terça"></div><div class="res"><button data-res="realizada" data-id="${a.id}">Realizada</button><button data-res="no_show" data-id="${a.id}">Não compareceu</button><button data-res="reagendar" data-id="${a.id}">Reagendar</button></div>`}
+   ${ro?`<p class="ro">Somente visualização. Para alterar, use o Kanban.</p><a class="btn alt" target="_blank" rel="noopener" href="${mapsUrl(a)}">Abrir no Google Maps</a>`:`<div class="big"><a class="btn" target="_blank" rel="noopener" href="${navUrl(a)}">Navegar até o cliente</a><a class="btn alt" target="_blank" rel="noopener" href="${wazeUrl(a)}">Waze</a></div><a class="btn alt" target="_blank" rel="noopener" href="${gcal(a)}">Adicionar ao Google Agenda</a>
+   ${done(a)?`<button class="lk" data-reopen="${a.id}">Reabrir esta agenda</button>`:`<div><label for="nt${a.id}">Observação rápida (opcional)</label><input id="nt${a.id}" placeholder="Ex.: pediu proposta, volta na terça"></div><div class="res"><button data-res="realizada" data-id="${a.id}">Realizada</button><button data-res="no_show" data-id="${a.id}">Não compareceu</button><button data-res="reagendar" data-id="${a.id}">Reagendar</button></div>`}`}
    <button class="lk" data-crm="${a.id}">Abrir no Kanban (histórico e edição)</button>${has(a)?'':'<span style="font-size:12px;color:var(--warn)">Sem localização exata no mapa: confira o endereço.</span>'}</div>`:'')+'</div>'};
  $('list5').innerHTML=L5.length?pend.map(c5).join('')+(dn.length?`<div class="hd">Concluídas (${dn.length})</div>`+dn.map(c5).join(''):''):'<div class="empty"><b>Nenhuma agenda para hoje.</b><br>Quando o SDR marcar uma reunião para este dia, ela aparece aqui sozinha.</div>';
  map5(fit,L5);const q=$('qc');if(q)q.onchange=()=>{cons5=q.value;sel2=null;render5(true)}}
@@ -334,8 +365,34 @@ $('list5').onclick=async e=>{
  const c=e.target.closest('.c5');if(c)pick5(c.dataset.id)};
 $('list5').onkeydown=e=>{if(e.key=='Enter'&&e.target.classList.contains('c5'))pick5(e.target.dataset.id)};
 
+/* ---------- navegar entre os dias ---------- */
+const shift=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.getFullYear()+'-'+pad(x.getMonth()+1)+'-'+pad(x.getDate())};
+const irDia=d=>{if(!d)return;dsel=d;sel2=null;render5(true)};
+$('dprev').onclick=()=>irDia(shift(dsel,-1));$('dnext').onclick=()=>irDia(shift(dsel,1));$('dhoje').onclick=()=>irDia(tod());$('dpick').onchange=e=>irDia(e.target.value);
+
+/* ---------- editar agenda (SDR e admin) ---------- */
+let edForce=false;
+function editar(id){const a=A.find(x=>x.id==id);if(!a)return;
+ $('dlg').dataset.id=id;$('e_o').value=a.nome_dono||'';$('e_n').value=a.contabilidade||'';$('e_c').value=a.cidade||'';$('e_e').value=a.endereco||'';$('e_d').value=a.dia;$('e_h').value=a.h;
+ $('e_q').value=a.qtd_cnpjs??'';$('e_t').value=a.telefone_cliente||'';$('e_m').value=a.email_cliente||'';$('e_r').value=a.resumo_ligacao||'';
+ $('e_cs').innerHTML=consultores().map(c=>`<option value="${c.id}" ${c.id==a.consultor_id?'selected':''}>${esc(c.nome)}</option>`).join('');$('e_chk').innerHTML='';$('dlg').showModal()}
+$('e_x').onclick=()=>$('dlg').close();
+$('ef').onsubmit=e=>{e.preventDefault();salvaEd(false)};
+async function salvaEd(force){const id=$('dlg').dataset.id,a=A.find(x=>x.id==id);if(!a)return;const b=$('e_go');b.disabled=true;b.textContent='Salvando…';
+ const fim=()=>{b.disabled=false;b.textContent='Salvar alterações'};
+ const f={nome_dono:$('e_o').value.trim(),contabilidade:$('e_n').value.trim(),cidade:$('e_c').value.trim(),endereco:$('e_e').value.trim(),dia:$('e_d').value,hora:$('e_h').value,
+  qtd_cnpjs:$('e_q').value?+$('e_q').value:null,consultor_id:$('e_cs').value,telefone_cliente:$('e_t').value.trim()||null,email_cliente:$('e_m').value.trim()||null,resumo_ligacao:$('e_r').value.trim()||null};
+ let ll=has(a)?[a.lat,a.lng]:null,aviso='';
+ if(f.endereco!=a.endereco||f.cidade!=a.cidade||!ll){const ex=await geo(f.endereco,f.cidade);ll=ex||await nom(f.cidade+', SP, Brasil');f.lat=ll?ll[0]:null;f.lng=ll?ll[1]:null;if(!ex)aviso='<p class="sub" style="margin-top:10px">Não achei o endereço exato; o ponto no mapa ficará no centro da cidade. Confira o endereço.</p>'}
+ if(!inativa(a)){const r=conflito(f,ll,a.id);
+  if(r.w==2&&!force){$('e_chk').innerHTML=`<div class="alert l2"><h3>Não dá para salvar neste horário</h3><ul>${r.li.map(x=>`<li>${x}</li>`).join('')}</ul>${me.papel=='admin'?'<p><button class="btn alt" type="button" id="e_mesmo">Salvar mesmo assim</button></p>':''}</div>`;const m=$('e_mesmo');if(m)m.onclick=()=>salvaEd(true);fim();return}}
+ const antes={...a},mudou=['dia','cidade','endereco','consultor_id','contabilidade','email_cliente','nome_dono'].some(k=>(f[k]||'')!=(antes[k]||''))||f.hora!=antes.h;
+ if(!await patch(id,f,'Agenda atualizada.')){fim();return}
+ a.h=f.hora;fim();$('dlg').close();kan();
+ if(mudou&&!inativa(a)){await cancelaConvite(antes);a.convite_id=null;await convite(id,a)}}
+
 /* ---------- virada do dia ---------- */
-function checkDay(){if(lastDay!=tod()){lastDay=tod();sel2=null;if($('fd'))$('fd').min=tod();render();if(view=='dia')render5(true);toast('Novo dia: agenda atualizada.')}}
+function checkDay(){if(lastDay!=tod()){if(dsel==lastDay)dsel=tod();lastDay=tod();sel2=null;if($('fd'))$('fd').min=tod();render();if(view=='dia')render5(true);toast('Novo dia: agenda atualizada.')}}
 setInterval(checkDay,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkDay()});
 $('esq').onclick=async()=>{if(!auth)return;const e=$('em').value.trim();if(!e){$('lm').textContent='Digite seu e-mail acima e clique de novo em Esqueci minha senha.';$('em').focus();return}
  try{await sendPasswordResetEmail(auth,e);$('lm').textContent='Enviamos o link para redefinir a senha. Olhe também o spam.'}catch(err){$('lm').textContent=err.code=='auth/invalid-email'?'E-mail inválido.':'Não foi possível enviar agora. Tente de novo.'}};

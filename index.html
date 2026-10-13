@@ -1,4 +1,4 @@
- <!doctype html>
+<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -245,7 +245,7 @@ function fillSelects(){const c=consultores(),v=$('fcs').value;$('fcs').innerHTML
 function buildNav(){const p=me.papel,t=[];
  if(p!='consultor')t.push(['novo','Nova agenda']);t.push(['kan','Kanban']);t.push(['dia',p=='sdr'?'Mapa dos consultores':'Agenda do dia']);
  $('nav').innerHTML=t.map(([k,n])=>`<button data-v="${k}">${n}</button>`).join('');
- $('who').innerHTML=`<span>${esc(me.nome)} · ${p}</span> <button class="out" id="sair">Sair</button>`;$('sair').onclick=sair}
+ $('who').innerHTML=`<span>${esc(me.nome)} · ${p}</span> <span style="opacity:.6;font-size:11px" title="Versão do sistema">v4</span> <button class="out" id="sair">Sair</button>`;$('sair').onclick=sair}
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.v)};
 function go(v){view=v;document.querySelectorAll('.v').forEach(s=>s.classList.toggle('on',s.id=='v-'+v));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
  if(v=='dia')open5();render();scrollTo(0,0)}

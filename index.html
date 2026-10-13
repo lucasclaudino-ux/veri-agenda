@@ -1,4 +1,4 @@
-<!doctype html>
+ <!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
@@ -245,7 +245,7 @@ function fillSelects(){const c=consultores(),v=$('fcs').value;$('fcs').innerHTML
 function buildNav(){const p=me.papel,t=[];
  if(p!='consultor')t.push(['novo','Nova agenda']);t.push(['kan','Kanban']);t.push(['dia',p=='sdr'?'Mapa dos consultores':'Agenda do dia']);
  $('nav').innerHTML=t.map(([k,n])=>`<button data-v="${k}">${n}</button>`).join('');
- $('who').innerHTML=`<span>${esc(me.nome)} · ${p}</span> <span style="opacity:.6;font-size:11px" title="Versão do sistema">v4</span> <button class="out" id="sair">Sair</button>`;$('sair').onclick=sair}
+ $('who').innerHTML=`<span>${esc(me.nome)} · ${p}</span> <span style="opacity:.6;font-size:11px" title="Versão do sistema">v5</span> <button class="out" id="sair">Sair</button>`;$('sair').onclick=sair}
 $('nav').onclick=e=>{const b=e.target.closest('button');if(b)go(b.dataset.v)};
 function go(v){view=v;document.querySelectorAll('.v').forEach(s=>s.classList.toggle('on',s.id=='v-'+v));document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v==v));
  if(v=='dia')open5();render();scrollTo(0,0)}
@@ -261,8 +261,9 @@ const navUrl=a=>ios?'https://maps.apple.com/?dirflg=d&daddr='+dest(a):'https://w
 const wazeUrl=a=>has(a)?'https://waze.com/ul?navigate=yes&ll='+a.lat+','+a.lng:'https://waze.com/ul?navigate=yes&q='+qs(a);
 const GAS='https://script.google.com/macros/s/AKfycbyZ2UiyGvGiz6bg5mtjKu1I_5kUQIZrfUK0YK2nG9lpCpttzE8sUjZM-_Foq9qL909j/exec',TITULO='Reunião presencial - Teste VERI - ';
 async function api(b){if(GAS.startsWith('COLE')||!auth||!auth.currentUser)return null;try{const t=await auth.currentUser.getIdToken(),r=await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,token:t})});return await r.json()}catch(e){return {ok:false,erro:String(e)}}}
-async function convite(id,a){if(GAS.startsWith('COLE'))return;const c=P[a.consultor_id]||{};
- if(!c.email){toast('Agenda criada, mas o consultor ainda não tem e-mail cadastrado: o convite não foi enviado.',9000);return}
+/* Todo convite vai para este e-mail (consultor Douglas) */
+const EMAIL_CONVITE='douglas.ferreira@veri.com.br';
+async function convite(id,a){if(GAS.startsWith('COLE'))return;const c0=P[a.consultor_id]||{},c={...c0,nome:c0.nome||'Douglas',email:EMAIL_CONVITE};
  const h=a.hora||a.h,r=await api({acao:'criar',titulo:TITULO+a.contabilidade+' | Consultor: '+(c.nome||''),consultor_nome:c.nome||'',consultor_email:c.email,inicio:a.dia+'T'+h.slice(0,5),minutos:DUR,local:a.endereco+', '+a.cidade+', SP',descricao:['Consultor: '+(c.nome||'')+' ('+c.email+')',a.nome_dono,a.telefone_cliente,a.email_cliente,a.qtd_cnpjs?a.qtd_cnpjs+' CNPJs':'',a.resumo_ligacao].filter(Boolean).join('\n'),convidados:[c.email,a.email_cliente].filter(Boolean)});
  if(r&&r.ok)await patch(id,{convite_id:r.id},'Convite enviado no Google Agenda para '+c.nome+'.');else toast('O convite NÃO foi enviado: '+((r&&r.erro)||'sem resposta')+'. Abra a agenda no Kanban e clique em Enviar convite.',9000)}
 async function cancelaConvite(a){if(a&&a.convite_id)await api({acao:'cancelar',id:a.convite_id})}

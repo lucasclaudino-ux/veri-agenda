@@ -93,7 +93,13 @@ textarea{resize:vertical;min-height:70px}
     <h2>Entrar na agenda</h2>
     <div><label for="em">E-mail</label><input id="em" type="email" autocomplete="username" required></div>
     <div><label for="pw">Senha</label><input id="pw" type="password" autocomplete="current-password" required></div>
+    <div id="cx" hidden style="display:grid;gap:14px">
+      <div><label for="cn">Seu nome</label><input id="cn" autocomplete="name"></div>
+      <div><label for="pw2">Repita a senha</label><input id="pw2" type="password" autocomplete="new-password"></div>
+      <div><label for="cod">Código da equipe</label><input id="cod" autocomplete="off"></div>
+    </div>
     <button class="btn" id="lb">Entrar</button>
+    <button class="lk" type="button" id="cad">Primeiro acesso? Criar minha conta</button>
     <button class="lk" type="button" id="esq">Esqueci minha senha</button>
     <p class="sub" id="lm" style="margin:0"></p>
   </form>
@@ -144,7 +150,7 @@ textarea{resize:vertical;min-height:70px}
 <div id="toast" role="status" aria-live="polite"></div>
 <script type="module">
 import {initializeApp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut,sendPasswordResetEmail} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,createUserWithEmailAndPassword,signOut,sendPasswordResetEmail} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
 import {getFirestore,collection,doc,getDoc,setDoc,addDoc,updateDoc,onSnapshot,query,where,orderBy,serverTimestamp} from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 /* ============ CONFIGURAÇÃO: cole aqui o firebaseConfig do seu projeto Firebase ============ */
 const CFG={apiKey:'AIzaSyAxj3XjbJvamFv4k1ydsd64hxlogcw3g9Y',authDomain:'veri-agenda.firebaseapp.com',projectId:'veri-agenda',storageBucket:'veri-agenda.firebasestorage.app',messagingSenderId:'543731109949',appId:'1:543731109949:web:e863d5151c761382b19a54'};
@@ -171,15 +177,25 @@ const falta=CFG.apiKey.startsWith('COLE');
 if(falta){$('lm').textContent='Falta configurar o projeto: cole o firebaseConfig no começo do código (CFG).';$('lb').disabled=true}
 let auth=null,db=null;
 if(!falta){const app=initializeApp(CFG);auth=getAuth(app);db=getFirestore(app)}
+const CODIGO='VERI2026'; /* código da equipe: troque e passe só para os SDRs */
+let modo='login',nomeNovo=null;
 let me=null,P={},A=[],view=null,sel=null,sel2=null,dia='todos',cons5=null,M2=null,G5=null,lastDay=tod(),unsubs=[];
-$('lf').onsubmit=async e=>{e.preventDefault();$('lb').disabled=true;$('lm').textContent='';
- try{await signInWithEmailAndPassword(auth,$('em').value.trim(),$('pw').value)}catch(err){$('lm').textContent='E-mail ou senha incorretos.'}
+$('cx').hidden=true;$('cx').style.display='none';
+$('cad').onclick=()=>{modo=modo=='login'?'cad':'login';const c=modo=='cad';$('cx').hidden=!c;$('cx').style.display=c?'grid':'none';$('lb').textContent=c?'Criar conta':'Entrar';$('cad').textContent=c?'Já tenho conta. Entrar':'Primeiro acesso? Criar minha conta';$('pw').autocomplete=c?'new-password':'current-password';$('lm').textContent=''};
+$('lf').onsubmit=async e=>{e.preventDefault();if(!auth)return;$('lb').disabled=true;$('lm').textContent='';const em=$('em').value.trim(),pw=$('pw').value;
+ if(modo=='cad'){
+  const erro=!$('cn').value.trim()?'Digite seu nome.':pw.length<6?'A senha precisa ter pelo menos 6 caracteres.':pw!==$('pw2').value?'As senhas não são iguais.':$('cod').value.trim().toLowerCase()!==CODIGO.toLowerCase()?'Código da equipe incorreto.':'';
+  if(erro){$('lm').textContent=erro;$('lb').disabled=false;return}
+  nomeNovo=$('cn').value.trim();
+  try{await createUserWithEmailAndPassword(auth,em,pw)}catch(err){nomeNovo=null;$('lm').textContent=err.code=='auth/email-already-in-use'?'Este e-mail já tem conta. Clique em Entrar ou em Esqueci minha senha.':err.code=='auth/invalid-email'?'E-mail inválido.':err.code=='auth/weak-password'?'Senha muito fraca. Use pelo menos 6 caracteres.':'Não foi possível criar a conta agora.'}
+ }else{
+  try{await signInWithEmailAndPassword(auth,em,pw)}catch(err){$('lm').textContent='E-mail ou senha incorretos.'}}
  $('lb').disabled=false};
 function boot(){onAuthStateChanged(auth,async u=>{
  unsubs.forEach(f=>f());unsubs=[];me=null;
  if(!u){$('nav').innerHTML='';$('who').innerHTML='';go('login');return}
  try{const ref=doc(db,'usuarios',u.uid),s=await getDoc(ref);
-  if(!s.exists())await setDoc(ref,{nome:(u.email||'').split('@')[0],papel:'sdr'})}
+  if(!s.exists())await setDoc(ref,{nome:nomeNovo||(u.email||'').split('@')[0],papel:'sdr',email:u.email});else if(s.data().email!=u.email)updateDoc(ref,{email:u.email}).catch(()=>{})}
  catch(e){toast('Não foi possível ler o perfil: '+e.message);return}
  listen(u.uid)})}
 function listen(uid){let gotU=false,gotA=false;
@@ -214,6 +230,13 @@ const dest=a=>has(a)?a.lat+','+a.lng:qs(a);
 const mapsUrl=a=>'https://www.google.com/maps/search/?api=1&query='+qs(a);
 const navUrl=a=>ios?'https://maps.apple.com/?dirflg=d&daddr='+dest(a):'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+dest(a);
 const wazeUrl=a=>has(a)?'https://waze.com/ul?navigate=yes&ll='+a.lat+','+a.lng:'https://waze.com/ul?navigate=yes&q='+qs(a);
+const GAS='COLE_AQUI_A_URL_DO_APPS_SCRIPT',TITULO='Reunião presencial - Teste VERI - ';
+async function api(b){if(GAS.startsWith('COLE')||!auth||!auth.currentUser)return null;try{const t=await auth.currentUser.getIdToken(),r=await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,token:t})});return await r.json()}catch(e){return {ok:false,erro:String(e)}}}
+async function convite(id,a){if(GAS.startsWith('COLE'))return;const c=P[a.consultor_id]||{};
+ if(!c.email){toast('Agenda criada, mas o consultor ainda não tem e-mail cadastrado: o convite não foi enviado.');return}
+ const h=a.hora||a.h,r=await api({acao:'criar',titulo:TITULO+a.contabilidade,inicio:a.dia+'T'+h.slice(0,5),minutos:DUR,local:a.endereco+', '+a.cidade+', SP',descricao:[a.nome_dono,a.telefone_cliente,a.email_cliente,a.qtd_cnpjs?a.qtd_cnpjs+' CNPJs':'',a.resumo_ligacao].filter(Boolean).join('\n'),convidados:[c.email,a.email_cliente].filter(Boolean)});
+ if(r&&r.ok)await patch(id,{convite_id:r.id},'Convite enviado no Google Agenda para '+c.nome+'.');else toast('Agenda criada, mas o convite falhou: '+((r&&r.erro)||'sem resposta'))}
+async function cancelaConvite(a){if(a&&a.convite_id)await api({acao:'cancelar',id:a.convite_id})}
 const gcal=a=>{const d=a.dia.replace(/-/g,''),i=mn(a.h),f=x=>d+'T'+pad(Math.floor(x/60))+pad(x%60)+'00';return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text='+encodeURIComponent('Reunião: '+a.contabilidade)+'&dates='+f(i)+'/'+f(i+DUR)+'&ctz=America/Sao_Paulo&location='+qs(a)+'&details='+encodeURIComponent((a.nome_dono||'')+' · '+(a.telefone_cliente||'')+'\n'+(a.resumo_ligacao||''))};
 async function nom(q){const k='geo:'+q;try{const c=localStorage.getItem(k);if(c)return JSON.parse(c)}catch(e){}
  try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(q));const j=await r.json();if(j[0]){const v=[+j[0].lat,+j[0].lon];try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}return v}}catch(e){}return null}
@@ -222,9 +245,9 @@ function km(p,q){const r=x=>x*Math.PI/180,h=Math.sin(r(q[0]-p[0])/2)**2+Math.cos
 
 /* ---------- Nova agenda (com alerta de viabilidade) ---------- */
 const ovl=(a,b,c,d)=>Math.max(0,Math.min(b,d)-Math.max(a,c));
-function chega(fim,t){let s=fim,r=t;if(s<LI){const x=Math.min(r,LI-s);s+=x;r-=x}if(r>0)s=Math.max(s,LF)+r;if(s<LF&&s+DUR>LI)s=LF;return Math.ceil(s/15)*15}
+function chega(fim,t){let s=fim,r=t;if(s<LI){const x=Math.min(r,LI-s);s+=x;r-=x}if(r>0)s=Math.max(s,LF)+r;if(s>=LI&&s<LF)s=LF;return Math.ceil(s/15)*15}
 function conflito(f,ll,ign){const li=[];let w=0,sem=0;const fi=mn(f.hora);
- if(ovl(fi,fi+DUR,LI,LF)>0){w=2;li.push(`A reunião das ${f.hora} às ${hm(fi+DUR)} bate no almoço (${hm(LI)} às ${hm(LF)}). Primeiro horário depois do almoço: ${hm(LF)}`)}
+ if(fi>=LI&&fi<LF){w=2;li.push(`Não dá para começar reunião durante o almoço (${hm(LI)} às ${hm(LF)}). Primeiro horário depois do almoço: ${hm(LF)}`)}
  A.filter(a=>a.id!=ign&&a.consultor_id==f.consultor_id&&a.dia==f.dia&&!inativa(a)).forEach(a=>{
   const al=has(a)?[a.lat,a.lng]:null,antes=mn(a.h)<=fi,[p,s]=antes?[{i:mn(a.h),ll:al},{i:fi,ll}]:[{i:fi,ll},{i:mn(a.h),ll:al}];
   const tag=`${a.h} em ${esc(a.cidade)} (${esc(a.contabilidade)})`,fim=p.i+DUR;
@@ -238,7 +261,7 @@ function conflito(f,ll,ign){const li=[];let w=0,sem=0;const fi=mn(f.hora);
  return {w,li,sem}}
 function mostra(r,force){const T=['Cabe na rota do consultor','Encaixe apertado','Não dá para agendar neste horário'][r.w];
  $('chk').innerHTML=`<div class="alert l${r.w}"><h3>${r.li.length?T:'Consultor livre neste dia'}</h3>`+(r.li.length?`<ul>${r.li.map(x=>`<li>${x}</li>`).join('')}</ul>`:'<p>Nenhuma outra reunião deste consultor neste dia.</p>')+
- (force?'<p><button class="btn alt" type="button" id="mesmo">Agendar mesmo assim</button></p>':'')+'<p style="color:var(--mut);font-size:12px">Regras: reunião de 2h, almoço das 12:00 às 13:30 e deslocamento de no máximo 90 min (cerca de 80 km em linha reta). Estimativa sem trânsito.</p></div>'}
+ (force?'<p><button class="btn alt" type="button" id="mesmo">Agendar mesmo assim</button></p>':'')+'<p style="color:var(--mut);font-size:12px">Regras: reunião de 2h, sem iniciar reunião no almoço (12:00 às 13:30) e deslocamento de no máximo 90 min (cerca de 80 km em linha reta). Estimativa sem trânsito.</p></div>'}
 $('form').onsubmit=async e=>{e.preventDefault();await salvar(false)};
 async function salvar(force){const b=$('go');b.disabled=true;b.textContent='Localizando o endereço…';
  const f={sdr_id:me.id,consultor_id:$('fcs').value,nome_dono:$('fo').value.trim(),contabilidade:$('fn').value.trim(),endereco:$('fe').value.trim(),cidade:$('fc').value.trim(),dia:$('fd').value,hora:$('fh').value,
@@ -249,10 +272,10 @@ async function salvar(force){const b=$('go');b.disabled=true;b.textContent='Loca
  if(!exato)$('chk').insertAdjacentHTML('beforeend','<p class="sub" style="margin-top:10px">Não achei o endereço exato; o ponto no mapa ficará no centro da cidade. Confira o endereço.</p>');
  if(r.w==2&&!force){b.disabled=false;b.textContent='Verificar e agendar';const m=$('mesmo');if(m)m.onclick=()=>salvar(true);return}
  if(f.lat==null){f.lat=null;f.lng=null}
- try{await addDoc(collection(db,'agendas'),{...f,status:'agendada',resultado:null,criado_em:serverTimestamp()})}
+ let ref;try{ref=await addDoc(collection(db,'agendas'),{...f,status:'agendada',resultado:null,criado_em:serverTimestamp()})}
  catch(error){b.disabled=false;b.textContent='Verificar e agendar';toast('Não foi possível salvar: '+error.message);return}
  b.disabled=false;b.textContent='Verificar e agendar';
- toast('Agenda criada. Já aparece para o consultor.');$('form').reset();$('fd').value=tod();$('chk').innerHTML='';go('kan')}
+ toast('Agenda criada. Já aparece para o consultor.');$('form').reset();$('fd').value=tod();$('chk').innerHTML='';go('kan');convite(ref.id,{...f,h:f.hora})}
 
 /* ---------- Kanban ---------- */
 function fillDias(){const ds=[...new Set(A.map(a=>a.dia))].sort();$('fdia').innerHTML='<option value="todos">Todos os dias</option>'+ds.map(d=>`<option value="${d}">${fd(d)}${d==tod()?' (hoje)':''}</option>`).join('');$('fdia').value=ds.includes(dia)?dia:'todos';dia=$('fdia').value}
@@ -265,13 +288,13 @@ $('fdia').onchange=e=>{dia=e.target.value;sel=null;kan()};
 async function patch(id,campos,msg){try{await updateDoc(doc(db,'agendas',id),campos)}catch(e){toast('Sem permissão ou falha ao salvar: '+e.message);return false}
  const a=A.find(x=>x.id==id);if(a)Object.assign(a,campos);if(msg)toast(msg);return true}
 const sd=$('side');
-sd.onclick=async e=>{const c=e.target.closest('[data-cancel]');if(c){if(confirm('Cancelar esta agenda?')){if(await patch(c.dataset.cancel,{status:'cancelada'},'Agenda cancelada.'))kan()}return}
+sd.onclick=async e=>{const c=e.target.closest('[data-cancel]');if(c){if(confirm('Cancelar esta agenda?')){if(await patch(c.dataset.cancel,{status:'cancelada'},'Agenda cancelada.')){kan();cancelaConvite(A.find(x=>x.id==c.dataset.cancel))}}return}
  if(e.target.closest('a,select'))return;const a=e.target.closest('.ag');if(a){sel=a.dataset.id;kan()}};
-sd.onchange=async e=>{const s=e.target.closest('[data-c]');if(s){const a=A.find(x=>x.id==s.dataset.c);const r=inativa(a)?{w:0}:conflito({consultor_id:s.value,dia:a.dia,hora:a.h,cidade:a.cidade},has(a)?[a.lat,a.lng]:null,a.id);if(r.w==2&&me.papel!='admin'){toast('Não dá: '+P[s.value].nome+' tem conflito de horário ou deslocamento neste dia.');kan();return}if(await patch(a.id,{consultor_id:s.value},'Agenda passada para '+P[s.value].nome+'.'))kan();else kan()}};
+sd.onchange=async e=>{const s=e.target.closest('[data-c]');if(s){const a=A.find(x=>x.id==s.dataset.c);const r=inativa(a)?{w:0}:conflito({consultor_id:s.value,dia:a.dia,hora:a.h,cidade:a.cidade},has(a)?[a.lat,a.lng]:null,a.id);if(r.w==2&&me.papel!='admin'){toast('Não dá: '+P[s.value].nome+' tem conflito de horário ou deslocamento neste dia.');kan();return}if(await patch(a.id,{consultor_id:s.value},'Agenda passada para '+P[s.value].nome+'.')){kan();await cancelaConvite(a);a.convite_id=null;await convite(a.id,a)}else kan()}};
 sd.onkeydown=e=>{if(e.key=='Enter'){const a=e.target.closest('.ag');if(a&&e.target==a){sel=a.dataset.id;kan()}}};
 sd.ondragstart=e=>{const a=e.target.closest('.ag');if(a)e.dataTransfer.setData('t',a.dataset.id)};
 sd.ondragover=e=>e.preventDefault();
-sd.ondrop=async e=>{e.preventDefault();const c=e.target.closest('.col'),a=A.find(x=>x.id==e.dataTransfer.getData('t'));if(c&&a&&a.status!=c.dataset.k){await patch(a.id,{status:c.dataset.k});kan()}};
+sd.ondrop=async e=>{e.preventDefault();const c=e.target.closest('.col'),a=A.find(x=>x.id==e.dataTransfer.getData('t'));if(c&&a&&a.status!=c.dataset.k){await patch(a.id,{status:c.dataset.k});kan();if(c.dataset.k=='cancelada')cancelaConvite(a)}};
 
 /* ---------- Agenda do consultor (somente hoje) ---------- */
 const dayList=()=>A.filter(a=>a.dia==tod()&&a.consultor_id==cons5&&a.status!='reagendar'&&a.status!='cancelada').sort((a,b)=>a.h.localeCompare(b.h));

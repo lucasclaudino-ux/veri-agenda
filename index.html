@@ -96,7 +96,7 @@ textarea{resize:vertical;min-height:70px}
     <div id="cx" hidden style="display:grid;gap:14px">
       <div><label for="cn">Seu nome</label><input id="cn" autocomplete="name"></div>
       <div><label for="pw2">Repita a senha</label><input id="pw2" type="password" autocomplete="new-password"></div>
-      <div><label for="cod">Código da equipe</label><input id="cod" autocomplete="off"></div>
+      <div><label for="pf">Tipo de perfil</label><select id="pf"><option value="sdr">SDR</option><option value="consultor">Consultor</option></select></div>
     </div>
     <button class="btn" id="lb">Entrar</button>
     <button class="lk" type="button" id="cad">Primeiro acesso? Criar minha conta</button>
@@ -177,16 +177,15 @@ const falta=CFG.apiKey.startsWith('COLE');
 if(falta){$('lm').textContent='Falta configurar o projeto: cole o firebaseConfig no começo do código (CFG).';$('lb').disabled=true}
 let auth=null,db=null;
 if(!falta){const app=initializeApp(CFG);auth=getAuth(app);db=getFirestore(app)}
-const CODIGO='VERI2026'; /* código da equipe: troque e passe só para os SDRs */
-let modo='login',nomeNovo=null;
+let modo='login',nomeNovo=null,papelNovo=null;
 let me=null,P={},A=[],view=null,sel=null,sel2=null,dia='todos',cons5=null,M2=null,G5=null,lastDay=tod(),unsubs=[];
 $('cx').hidden=true;$('cx').style.display='none';
 $('cad').onclick=()=>{modo=modo=='login'?'cad':'login';const c=modo=='cad';$('cx').hidden=!c;$('cx').style.display=c?'grid':'none';$('lb').textContent=c?'Criar conta':'Entrar';$('cad').textContent=c?'Já tenho conta. Entrar':'Primeiro acesso? Criar minha conta';$('pw').autocomplete=c?'new-password':'current-password';$('lm').textContent=''};
 $('lf').onsubmit=async e=>{e.preventDefault();if(!auth)return;$('lb').disabled=true;$('lm').textContent='';const em=$('em').value.trim(),pw=$('pw').value;
  if(modo=='cad'){
-  const erro=!$('cn').value.trim()?'Digite seu nome.':pw.length<6?'A senha precisa ter pelo menos 6 caracteres.':pw!==$('pw2').value?'As senhas não são iguais.':$('cod').value.trim().toLowerCase()!==CODIGO.toLowerCase()?'Código da equipe incorreto.':'';
+  const erro=!$('cn').value.trim()?'Digite seu nome.':pw.length<6?'A senha precisa ter pelo menos 6 caracteres.':pw!==$('pw2').value?'As senhas não são iguais.':'';
   if(erro){$('lm').textContent=erro;$('lb').disabled=false;return}
-  nomeNovo=$('cn').value.trim();
+  nomeNovo=$('cn').value.trim();papelNovo=$('pf').value;
   try{await createUserWithEmailAndPassword(auth,em,pw)}catch(err){nomeNovo=null;$('lm').textContent=err.code=='auth/email-already-in-use'?'Este e-mail já tem conta. Clique em Entrar ou em Esqueci minha senha.':err.code=='auth/invalid-email'?'E-mail inválido.':err.code=='auth/weak-password'?'Senha muito fraca. Use pelo menos 6 caracteres.':'Não foi possível criar a conta agora.'}
  }else{
   try{await signInWithEmailAndPassword(auth,em,pw)}catch(err){$('lm').textContent='E-mail ou senha incorretos.'}}
@@ -195,7 +194,7 @@ function boot(){onAuthStateChanged(auth,async u=>{
  unsubs.forEach(f=>f());unsubs=[];me=null;
  if(!u){$('nav').innerHTML='';$('who').innerHTML='';go('login');return}
  try{const ref=doc(db,'usuarios',u.uid),s=await getDoc(ref);
-  if(!s.exists())await setDoc(ref,{nome:nomeNovo||(u.email||'').split('@')[0],papel:'sdr',email:u.email});else if(s.data().email!=u.email)updateDoc(ref,{email:u.email}).catch(()=>{})}
+  if(!s.exists())await setDoc(ref,{nome:nomeNovo||(u.email||'').split('@')[0],papel:papelNovo||'sdr',email:u.email});else if(s.data().email!=u.email)updateDoc(ref,{email:u.email}).catch(()=>{})}
  catch(e){toast('Não foi possível ler o perfil: '+e.message);return}
  listen(u.uid)})}
 function listen(uid){let gotU=false,gotA=false;
@@ -230,7 +229,7 @@ const dest=a=>has(a)?a.lat+','+a.lng:qs(a);
 const mapsUrl=a=>'https://www.google.com/maps/search/?api=1&query='+qs(a);
 const navUrl=a=>ios?'https://maps.apple.com/?dirflg=d&daddr='+dest(a):'https://www.google.com/maps/dir/?api=1&travelmode=driving&destination='+dest(a);
 const wazeUrl=a=>has(a)?'https://waze.com/ul?navigate=yes&ll='+a.lat+','+a.lng:'https://waze.com/ul?navigate=yes&q='+qs(a);
-const GAS='COLE_AQUI_A_URL_DO_APPS_SCRIPT',TITULO='Reunião presencial - Teste VERI - ';
+const GAS='https://script.google.com/macros/s/AKfycbyZ2UiyGvGiz6bg5mtjKu1I_5kUQIZrfUK0YK2nG9lpCpttzE8sUjZM-_Foq9qL909j/exec',TITULO='Reunião presencial - Teste VERI - ';
 async function api(b){if(GAS.startsWith('COLE')||!auth||!auth.currentUser)return null;try{const t=await auth.currentUser.getIdToken(),r=await fetch(GAS,{method:'POST',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify({...b,token:t})});return await r.json()}catch(e){return {ok:false,erro:String(e)}}}
 async function convite(id,a){if(GAS.startsWith('COLE'))return;const c=P[a.consultor_id]||{};
  if(!c.email){toast('Agenda criada, mas o consultor ainda não tem e-mail cadastrado: o convite não foi enviado.');return}
